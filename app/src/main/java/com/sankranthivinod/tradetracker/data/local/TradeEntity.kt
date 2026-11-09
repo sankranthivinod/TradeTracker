@@ -11,5 +11,5 @@ data class TradeEntity(
     val optionType: String? = null, // "Call", "Put", or null
     val amount: Double, // positive for profit, negative for loss
     val ticker: String, // Note or symbol (e.g., "SPY", "TSLA")
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
 )

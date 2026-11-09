@@ -1,6 +1,9 @@
 package com.sankranthivinod.tradetracker.presentation
 
 import com.sankranthivinod.tradetracker.data.local.TradeEntity
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class CumulativePoint(
     val timestamp: Long,
@@ -20,7 +23,16 @@ data class TradeUiState(
     val amountError: String? = null,
     val showAboutDialog: Boolean = false,
     val showClearConfirmDialog: Boolean = false,
-    val exportCsvData: String? = null
+    val exportCsvData: String? = null,
+
+    // Admin Rules State
+    val rulesEnabled: Boolean = false,
+    val maxLossPerTrade: Double = 500.0,
+    val maxLossPerDay: Double = 1000.0,
+    val showAdminPasswordDialog: Boolean = false,
+    val adminPasswordInput: String = "",
+    val adminPasswordError: String? = null,
+    val isAdminAuthenticated: Boolean = false
 ) {
     val filteredTrades: List<TradeEntity>
         get() = if (selectedFilter == "All") {
@@ -78,4 +90,30 @@ data class TradeUiState(
                 )
             }
         }
+
+    // Rule Violation Calculations
+    fun isTradeLossViolated(trade: TradeEntity): Boolean {
+        if (!rulesEnabled) return false
+        if (trade.amount >= 0) return false
+        val lossAmount = kotlin.math.abs(trade.amount)
+        return lossAmount > maxLossPerTrade
+    }
+
+    fun isDayLossViolated(timestamp: Long): Boolean {
+        if (!rulesEnabled) return false
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val targetDateStr = dateFormat.format(Date(timestamp))
+        val dailyLoss = trades
+            .filter { dateFormat.format(Date(it.timestamp)) == targetDateStr && it.amount < 0 }
+            .sumOf { kotlin.math.abs(it.amount) }
+        return dailyLoss > maxLossPerDay
+    }
+
+    fun getDailyLossForTimestamp(timestamp: Long): Double {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val targetDateStr = dateFormat.format(Date(timestamp))
+        return trades
+            .filter { dateFormat.format(Date(it.timestamp)) == targetDateStr && it.amount < 0 }
+            .sumOf { kotlin.math.abs(it.amount) }
+    }
 }

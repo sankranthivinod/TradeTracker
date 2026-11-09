@@ -35,8 +35,7 @@ class TradeViewModel(private val repository: TradeRepository) : ViewModel() {
         _uiState.update {
             it.copy(
                 instrumentTypeInput = type,
-                // reset option type if not options
-                optionTypeInput = if (type == "Options") "Call" else "Call"
+                optionTypeInput = "Call",
             )
         }
     }
@@ -110,6 +109,58 @@ class TradeViewModel(private val repository: TradeRepository) : ViewModel() {
 
     fun setShowClearConfirmDialog(show: Boolean) {
         _uiState.update { it.copy(showClearConfirmDialog = show) }
+    }
+
+    fun setShowAdminPasswordDialog(show: Boolean) {
+        _uiState.update {
+            it.copy(
+                showAdminPasswordDialog = show,
+                adminPasswordInput = "",
+                adminPasswordError = null
+            )
+        }
+    }
+
+    fun onAdminPasswordInputChanged(password: String) {
+        _uiState.update {
+            it.copy(
+                adminPasswordInput = password,
+                adminPasswordError = null
+            )
+        }
+    }
+
+    fun verifyAdminPassword(): Boolean {
+        return if (_uiState.value.adminPasswordInput == "9630") {
+            _uiState.update {
+                it.copy(
+                    isAdminAuthenticated = true,
+                    showAdminPasswordDialog = false,
+                    adminPasswordInput = "",
+                    adminPasswordError = null
+                )
+            }
+            true
+        } else {
+            _uiState.update {
+                it.copy(adminPasswordError = "Incorrect password! Password is 9630.")
+            }
+            false
+        }
+    }
+
+    fun updateAdminRules(enabled: Boolean, maxLossTrade: Double, maxLossDay: Double) {
+        _uiState.update {
+            it.copy(
+                rulesEnabled = enabled,
+                maxLossPerTrade = maxLossTrade,
+                maxLossPerDay = maxLossDay
+            )
+        }
+    }
+
+    fun logoutAdmin() {
+        _uiState.update { it.copy(isAdminAuthenticated = false) }
     }
 
     fun exportCsv(context: Context) {

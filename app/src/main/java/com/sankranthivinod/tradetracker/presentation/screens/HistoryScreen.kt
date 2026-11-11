@@ -87,6 +87,7 @@ fun HistoryScreen(
             ) { trade ->
                 TradeItemCard(
                     trade = trade,
+                    uiState = uiState,
                     onDeleteTrade = { viewModel.deleteTrade(it) }
                 )
             }

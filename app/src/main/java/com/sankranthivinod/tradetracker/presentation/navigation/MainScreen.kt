@@ -3,6 +3,7 @@ package com.sankranthivinod.tradetracker.presentation.navigation
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -32,7 +33,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.sankranthivinod.tradetracker.presentation.TradeViewModel
 import com.sankranthivinod.tradetracker.presentation.components.AboutDialog
+import com.sankranthivinod.tradetracker.presentation.components.AdminPasswordDialog
 import com.sankranthivinod.tradetracker.presentation.components.ClearConfirmDialog
+import com.sankranthivinod.tradetracker.presentation.screens.AdminScreen
 import com.sankranthivinod.tradetracker.presentation.screens.AnalyticsScreen
 import com.sankranthivinod.tradetracker.presentation.screens.HistoryScreen
 import com.sankranthivinod.tradetracker.presentation.screens.HomeScreen
@@ -60,6 +63,7 @@ fun MainScreen(
                         Screen.Home.route -> "Dashboard"
                         Screen.Trends.route -> "Trends & Analytics"
                         Screen.History.route -> "Trade History"
+                        Screen.Admin.route -> "Admin Risk Rules"
                         else -> "Trade Tracker"
                     }
                     Text(
@@ -86,6 +90,23 @@ fun MainScreen(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false }
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("Admin Rules (Password)") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                if (uiState.isAdminAuthenticated) {
+                                    navController.navigate(Screen.Admin.route)
+                                } else {
+                                    viewModel.setShowAdminPasswordDialog(true)
+                                }
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Text("About App") },
                             onClick = {
@@ -163,10 +184,26 @@ fun MainScreen(
             composable(Screen.History.route) {
                 HistoryScreen(uiState = uiState, viewModel = viewModel)
             }
+            composable(Screen.Admin.route) {
+                AdminScreen(uiState = uiState, viewModel = viewModel)
+            }
         }
     }
 
     // Dialogs
+    if (uiState.showAdminPasswordDialog) {
+        AdminPasswordDialog(
+            uiState = uiState,
+            viewModel = viewModel,
+            onSuccess = {
+                navController.navigate(Screen.Admin.route)
+            },
+            onDismiss = {
+                viewModel.setShowAdminPasswordDialog(false)
+            }
+        )
+    }
+
     if (uiState.showAboutDialog) {
         AboutDialog(onDismiss = { viewModel.setShowAboutDialog(false) })
     }

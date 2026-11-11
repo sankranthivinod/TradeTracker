@@ -1,8 +1,10 @@
 package com.sankranthivinod.tradetracker.presentation.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
@@ -26,15 +29,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sankranthivinod.tradetracker.data.local.TradeEntity
+import com.sankranthivinod.tradetracker.presentation.TradeUiState
 import com.sankranthivinod.tradetracker.ui.theme.LossRed
+import com.sankranthivinod.tradetracker.ui.theme.LossRedContainerLight
 import com.sankranthivinod.tradetracker.ui.theme.ProfitGreen
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TradeItemCard(
     trade: TradeEntity,
+    uiState: TradeUiState,
     onDeleteTrade: (TradeEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -42,6 +49,10 @@ fun TradeItemCard(
     val amountColor = if (isProfit) ProfitGreen else LossRed
     val dateFormat = SimpleDateFormat("MMM dd, yyyy • HH:mm", Locale.getDefault())
     val dateString = dateFormat.format(Date(trade.timestamp))
+
+    val isTradeViolated = uiState.isTradeLossViolated(trade)
+    val isDayViolated = uiState.isDayLossViolated(trade.timestamp)
+    val hasAnyViolation = isTradeViolated || isDayViolated
 
     val badgeLabel = if (trade.instrumentType == "Options" && trade.optionType != null) {
         "${trade.instrumentType} • ${trade.optionType}"
@@ -53,71 +64,133 @@ fun TradeItemCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
+            containerColor = if (hasAnyViolation) LossRedContainerLight.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceContainer
         ),
+        border = if (hasAnyViolation) BorderStroke(1.5.dp, LossRed) else null,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = trade.ticker,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    AssistChip(
-                        onClick = { },
-                        label = {
-                            Text(
-                                text = badgeLabel,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                            labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = trade.ticker,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
+
+                        AssistChip(
+                            onClick = { },
+                            label = {
+                                Text(
+                                    text = badgeLabel,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = dateString,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = formatCurrency(trade.amount),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = amountColor
+                    )
 
-                Text(
-                    text = dateString,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    IconButton(onClick = { onDeleteTrade(trade) }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Trade",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
+                }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = formatCurrency(trade.amount),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = amountColor
-                )
+            // Red Rule Violation Chips
+            if (hasAnyViolation) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (isTradeViolated) {
+                        AssistChip(
+                            onClick = { },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = LossRed
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = "VIOLATED: Exceeded Max Loss Per Trade (${formatCurrency(uiState.maxLossPerTrade)})",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = LossRed.copy(alpha = 0.15f),
+                                labelColor = LossRed
+                            ),
+                            border = BorderStroke(1.dp, LossRed)
+                        )
+                    }
 
-                Spacer(modifier = Modifier.width(4.dp))
-
-                IconButton(onClick = { onDeleteTrade(trade) }) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete Trade",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
+                    if (isDayViolated) {
+                        AssistChip(
+                            onClick = { },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = LossRed
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = "DAY VIOLATED: Daily Loss Limit Exceeded (${formatCurrency(uiState.maxLossPerDay)})",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = LossRed.copy(alpha = 0.15f),
+                                labelColor = LossRed
+                            ),
+                            border = BorderStroke(1.dp, LossRed)
+                        )
+                    }
                 }
             }
         }

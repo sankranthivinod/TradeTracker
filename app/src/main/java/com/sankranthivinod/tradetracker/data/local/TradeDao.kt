@@ -13,11 +13,11 @@ interface TradeDao {
     fun getAllTrades(): Flow<List<TradeEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTrade(trade: TradeEntity)
+    fun insertTrade(trade: TradeEntity)
 
     @Delete
-    suspend fun deleteTrade(trade: TradeEntity)
+    fun deleteTrade(trade: TradeEntity)
 
     @Query("DELETE FROM trades")
-    suspend fun clearAllTrades()
+    fun clearAllTrades()
 }
